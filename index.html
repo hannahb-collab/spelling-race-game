@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spelling Race Arena - Classroom Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Fredoka', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              bg: '#f1f5f9',
+              card: '#ffffff',
+              indigo: '#6366f1',
+              cyan: '#06b6d4',
+              pink: '#ec4899',
+              amber: '#f59e0b',
+              emerald: '#10b981',
+              violet: '#8b5cf6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #fae8ff 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      user-select: none;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    }
+    .track-bg {
+      background: repeating-linear-gradient(
+        90deg,
+        #f8fafc,
+        #f8fafc 30px,
+        #e2e8f0 30px,
+        #e2e8f0 60px
+      );
+    }
+    .finish-line {
+      background: repeating-linear-gradient(
+        45deg,
+        #1e293b,
+        #1e293b 8px,
+        #ffffff 8px,
+        #ffffff 16px
+      );
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 99px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #818cf8;
+    }
+  </style>
+</head>
+<body class="flex flex-col font-sans antialiased text-slate-800">
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-indigo-100 sticky top-0 z-40 px-4 py-3 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl shadow-md shadow-indigo-200 font-display">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-xl font-display font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            SPELLING RACE ARENA
+          </h1>
+          <p class="text-xs text-slate-500 font-semibold">Classroom Speed Battle Edition</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Navigation -->
+      <div class="flex items-center gap-2">
+        <div class="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+          <span>👥 Active Racers:</span>
+          <span id="activeCountBadge" class="bg-indigo-600 text-white px-2 py-0.5 rounded-md">23 / 23</span>
+        </div>
+
+        <button id="btnRosterModal" class="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm border border-slate-200 transition flex items-center gap-1.5 active:scale-95">
+          ⚙️ Roster
+        </button>
+
+        <button id="btnStatsModal" class="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm border border-slate-200 transition flex items-center gap-1.5 active:scale-95">
+          📊 Stats
+        </button>
+
+        <button id="btnResetModal" class="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold border border-rose-200 transition flex items-center gap-1.5 active:scale-95">
+          🔄 Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: TEACHER CONTROL CENTER & STUDENT SPELLER (5 COLS) -->
+    <section class="lg:col-span-5 flex flex-col gap-5">
+
+      <!-- Teacher Console Box -->
+      <div class="glass-card rounded-3xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+          <h2 class="text-sm font-display font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+            <span class="p-1.5 bg-indigo-100 rounded-lg text-indigo-600">🎙️</span> Teacher Control Center
+          </h2>
+          <span id="roundCounter" class="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+            ROUND 1
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Secret Word Input -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-extrabold text-slate-600 uppercase tracking-wide">
+                1. Enter Secret Target Word
+              </label>
+              <button id="btnToggleWordMask" class="text-[11px] font-bold text-indigo-600 hover:underline">
+                👁️ Unmask Word
+              </button>
+            </div>
+            
+            <div class="relative">
+              <input type="password" id="secretWordInput" placeholder="Type secret word here..." autocomplete="off" spellcheck="false"
+                class="w-full bg-slate-50 border-2 border-indigo-100 focus:border-indigo-500 focus:bg-white rounded-2xl px-4 py-3 text-slate-800 font-bold text-lg uppercase tracking-wider outline-none transition" />
+              <div id="wordLockBadge" class="absolute right-3 top-3.5 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-bold pointer-events-none">
+                🔒 Hidden from Students
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 italic">Students will NOT see this word anywhere on screen.</p>
+          </div>
+
+          <!-- Timer & Hint -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-extrabold text-slate-600 uppercase tracking-wide mb-1">Optional Clue/Context</label>
+              <input type="text" id="hintInput" placeholder="e.g. 'Noun - a type of vehicle'"
+                class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold text-slate-600 uppercase tracking-wide mb-1">Timer (sec)</label>
+              <input type="number" id="timerDurationInput" value="30" min="10" max="120"
+                class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 font-bold text-center outline-none text-xs" />
+            </div>
+          </div>
+
+          <!-- Audio Speech Synthesizer Control -->
+          <div class="pt-1 flex gap-2">
+            <button id="btnSpeakWord" class="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-md shadow-indigo-200 flex items-center justify-center gap-2 transition active:scale-95">
+              <span class="text-base">🔊</span> Read Secret Word Aloud
+            </button>
+          </div>
+
+          <!-- Start Round Action -->
+          <button id="btnStartRace" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 hover:from-emerald-500 hover:to-cyan-600 text-white font-display font-bold text-base tracking-wide shadow-md shadow-emerald-200 transition transform hover:-translate-y-0.5 active:translate-y-0">
+            🚀 START RACE ROUND
+          </button>
+        </div>
+      </div>
+
+      <!-- Student Speller Arena -->
+      <div id="spellerArenaBox" class="glass-card rounded-3xl p-5 flex-1 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+            <h3 class="text-xs font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚡</span> Student Speller Station
+            </h3>
+            <div id="timerDisplay" class="font-display font-bold text-xl text-amber-500 bg-amber-50 px-3 py-1 rounded-2xl border border-amber-200">
+              30s
+            </div>
+          </div>
+
+          <!-- Secret Word Display Placeholder for Students -->
+          <div class="bg-slate-100/80 border border-slate-200 rounded-2xl p-4 text-center mb-4 space-y-1">
+            <div id="maskedWordBox" class="font-mono text-2xl font-black text-indigo-400 tracking-widest">
+              ••••••••
+            </div>
+            <p id="raceHintText" class="text-xs font-semibold text-slate-500 italic">
+              Listen to the teacher or press "Read Secret Word Aloud"!
+            </p>
+          </div>
+
+          <!-- Speller Submission Controls -->
+          <form id="submissionForm" class="space-y-3">
+            <div>
+              <label class="block text-xs font-extrabold text-slate-600 uppercase tracking-wide mb-1">
+                Select Active Speller
+              </label>
+              <select id="spellerSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 font-bold outline-none focus:border-indigo-500 text-sm">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-600 uppercase tracking-wide mb-1">
+                Type Student's Answer
+              </label>
+              <div class="flex gap-2">
+                <input type="text" id="studentSpellingInput" placeholder="Spell target word here..." disabled autocomplete="off" spellcheck="false"
+                  class="flex-1 bg-white border-2 border-slate-200 focus:border-pink-500 rounded-2xl px-4 py-3 text-lg font-bold text-slate-800 tracking-wide outline-none disabled:bg-slate-100 transition" />
+                <button type="submit" id="btnSubmitSpelling" disabled
+                  class="px-5 py-3 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 disabled:opacity-40 text-white font-extrabold text-sm shadow-md shadow-pink-200 transition active:scale-95">
+                  SUBMIT
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Live Feedback Alert -->
+        <div id="feedbackBox" class="mt-4 p-3.5 rounded-2xl text-center font-extrabold text-sm hidden">
+          <!-- Dynamic Alert -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: RACE TRACK & LEADERBOARD (7 COLS) -->
+    <section class="lg:col-span-7 flex flex-col gap-5">
+
+      <!-- Live Race Track Card -->
+      <div class="glass-card rounded-3xl p-5 flex flex-col h-[390px]">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+          <h2 class="text-sm font-display font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+            <span>🏎️</span> Live Race Track
+          </h2>
+          <span class="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Progress Bar
+          </span>
+        </div>
+
+        <!-- Track Scroll Area -->
+        <div id="raceTrackContainer" class="flex-1 overflow-y-auto pr-2 space-y-2.5 rounded-2xl bg-slate-50 p-3 border border-slate-200/80">
+          <!-- Tracks generated dynamically -->
+        </div>
+
+        <div class="mt-3 flex justify-between text-[11px] font-bold text-slate-400 px-2 uppercase tracking-widest border-t border-slate-100 pt-2">
+          <span>START 🚩</span>
+          <span>MIDWAY</span>
+          <span class="text-indigo-600">FINISH LINE 🏁</span>
+        </div>
+      </div>
+
+      <!-- Leaderboard Card -->
+      <div class="glass-card rounded-3xl p-5 flex-1 flex flex-col min-h-[280px]">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+          <h2 class="text-sm font-display font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+            <span>🏆</span> Leaderboard & Ranks
+          </h2>
+          <span class="text-xs text-slate-500 font-semibold">Class Score Standings</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 uppercase sticky top-0 border-b border-slate-200 font-extrabold">
+              <tr>
+                <th class="py-2.5 px-3">Rank</th>
+                <th class="py-2.5 px-3">Student</th>
+                <th class="py-2.5 px-3">Rank Title</th>
+                <th class="py-2.5 px-3 text-right">Coins 🪙</th>
+                <th class="py-2.5 px-3 text-right">Streak</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody" class="divide-y divide-slate-100 font-semibold text-slate-700">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: ROSTER SELECTION -->
+  <div id="rosterModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-display font-bold text-indigo-900 flex items-center gap-2">
+          <span>👥</span> Manage Student Roster (23 Racers)
+        </h3>
+        <button class="closeModalBtn text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="btnSelectAllRacers" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition">
+          Select All
+        </button>
+        <button id="btnDeselectAllRacers" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-600 transition">
+          Deselect All
+        </button>
+      </div>
+
+      <div id="rosterGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 overflow-y-auto flex-1 p-1">
+        <!-- Checkboxes generated dynamically -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button class="closeModalBtn px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-200">
+          Save & Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CLASS STATS -->
+  <div id="statsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-display font-bold text-indigo-900 flex items-center gap-2">
+          <span>📊</span> Class Match Analytics
+        </h3>
+        <button class="closeModalBtn text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+          <p class="text-xs text-slate-500 font-bold">Total Attempts</p>
+          <p id="statTotalWords" class="text-2xl font-black text-indigo-600 mt-1">0</p>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+          <p class="text-xs text-slate-500 font-bold">Class Accuracy</p>
+          <p id="statAccuracy" class="text-2xl font-black text-emerald-600 mt-1">0%</p>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center col-span-2">
+          <p class="text-xs text-slate-500 font-bold">Current MVP</p>
+          <p id="statMVP" class="text-lg font-black text-amber-500 mt-1">None Yet</p>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button class="closeModalBtn px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: RESET OPTIONS -->
+  <div id="resetModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <h3 class="text-base font-display font-bold text-rose-600 flex items-center gap-2">
+        <span>⚠️</span> Reset Game Options
+      </h3>
+      <p class="text-xs text-slate-600 leading-relaxed font-semibold">
+        Choose whether to reset just the current active track round or start a completely new match with all student scores zeroed out.
+      </p>
+
+      <div class="space-y-2 pt-2">
+        <button id="btnResetCurrentRound" class="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 text-left flex justify-between items-center transition">
+          <span>Reset Current Round</span>
+          <span class="text-[11px] text-slate-500">Keep leaderboard scores</span>
+        </button>
+
+        <button id="btnResetFullGame" class="w-full py-3 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 text-left flex justify-between items-center transition">
+          <span>Reset Entire Game Scores</span>
+          <span class="text-[11px] text-rose-500">Zero out coins & streaks</span>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button class="closeModalBtn px-4 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. DATA & ROSTER DECLARATION
+       =================================================================== */
+    const DEFAULT_STUDENTS = [
+      "Billy", "Nathan", "Hazel", "Cherry", "Alex", "Ken", 
+      "Chloe Lau", "Mabel", "Michael", "Emma", "Polly", "Kiki", 
+      "Aimee", "Chloe Wong", "Cyrus", "Issac", "Pierce", "Fabian", 
+      "Vincent", "Kitty", "yuki", "Ryson", "Leo"
+    ];
+
+    const AVATARS = ["🏎️", "🚀", "⚡", "🦖", "🦄", "👾", "🛸", "🤖", "🔥", "🦅", "🦁", "🐺", "🐯", "🐲"];
+
+    /* ===================================================================
+       2. WEB AUDIO API SYNTHESIZER
+       =================================================================== */
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      playCorrect() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.25);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playWrong() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playTick() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+
+      playFanfare() {
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + (idx * 0.1);
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+      }
+    }
+
+    const sfx = new SoundFX();
+
+    /* ===================================================================
+       3. APP STATE
+       =================================================================== */
+    const state = {
+      players: DEFAULT_STUDENTS.map((name, index) => ({
+        id: index + 1,
+        name: name,
+        active: true,
+        coins: 0,
+        streak: 0,
+        progress: 0,
+        avatar: AVATARS[index % AVATARS.length]
+      })),
+      currentRound: 1,
+      secretTargetWord: '',
+      timerDuration: 30,
+      timeRemaining: 30,
+      timerInterval: null,
+      isRaceActive: false,
+      roundStartTime: 0,
+      correctInRound: 0,
+      totalAttempts: 0,
+      totalCorrect: 0,
+      isWordMasked: true
+    };
+
+    const DOM = {
+      secretWordInput: document.getElementById('secretWordInput'),
+      wordLockBadge: document.getElementById('wordLockBadge'),
+      btnToggleWordMask: document.getElementById('btnToggleWordMask'),
+      timerDurationInput: document.getElementById('timerDurationInput'),
+      hintInput: document.getElementById('hintInput'),
+      btnSpeakWord: document.getElementById('btnSpeakWord'),
+      btnStartRace: document.getElementById('btnStartRace'),
+      roundCounter: document.getElementById('roundCounter'),
+      timerDisplay: document.getElementById('timerDisplay'),
+      maskedWordBox: document.getElementById('maskedWordBox'),
+      raceHintText: document.getElementById('raceHintText'),
+      spellerSelect: document.getElementById('spellerSelect'),
+      studentSpellingInput: document.getElementById('studentSpellingInput'),
+      btnSubmitSpelling: document.getElementById('btnSubmitSpelling'),
+      submissionForm: document.getElementById('submissionForm'),
+      feedbackBox: document.getElementById('feedbackBox'),
+      raceTrackContainer: document.getElementById('raceTrackContainer'),
+      leaderboardBody: document.getElementById('leaderboardBody'),
+      activeCountBadge: document.getElementById('activeCountBadge'),
+      // Modals
+      rosterModal: document.getElementById('rosterModal'),
+      statsModal: document.getElementById('statsModal'),
+      resetModal: document.getElementById('resetModal'),
+      btnRosterModal: document.getElementById('btnRosterModal'),
+      btnStatsModal: document.getElementById('btnStatsModal'),
+      btnResetModal: document.getElementById('btnResetModal'),
+      rosterGrid: document.getElementById('rosterGrid'),
+      btnSelectAllRacers: document.getElementById('btnSelectAllRacers'),
+      btnDeselectAllRacers: document.getElementById('btnDeselectAllRacers'),
+      btnResetCurrentRound: document.getElementById('btnResetCurrentRound'),
+      btnResetFullGame: document.getElementById('btnResetFullGame'),
+      statTotalWords: document.getElementById('statTotalWords'),
+      statAccuracy: document.getElementById('statAccuracy'),
+      statMVP: document.getElementById('statMVP')
+    };
+
+    function getRankTitle(coins) {
+      if (coins >= 500) return { title: "Lexicon Legend 👑", color: "text-amber-700 bg-amber-50 border-amber-200" };
+      if (coins >= 300) return { title: "Word Wizard 🧙", color: "text-purple-700 bg-purple-50 border-purple-200" };
+      if (coins >= 150) return { title: "Grammar Ninja 🥷", color: "text-indigo-700 bg-indigo-50 border-indigo-200" };
+      if (coins >= 50)  return { title: "Spellmaster ⚡", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+      return { title: "Rookie Speller 🐣", color: "text-slate-600 bg-slate-100 border-slate-200" };
+    }
+
+    /* ===================================================================
+       4. SPEECH SYNTHESIS
+       =================================================================== */
+    function speakSecretWord() {
+      const word = DOM.secretWordInput.value.trim();
+      if (!word) {
+        showFeedback("Please type a secret word first!", "error");
+        return;
+      }
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.rate = 0.85;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    /* ===================================================================
+       5. RENDERING (TRACKS & LEADERBOARD)
+       =================================================================== */
+    function renderRaceTracks() {
+      const activePlayers = state.players.filter(p => p.active);
+      DOM.raceTrackContainer.innerHTML = '';
+
+      if (activePlayers.length === 0) {
+        DOM.raceTrackContainer.innerHTML = '<p class="text-center text-slate-400 text-xs py-10 font-bold">No racers enabled in roster.</p>';
+        return;
+      }
+
+      activePlayers.forEach(p => {
+        const lane = document.createElement('div');
+        lane.className = 'flex items-center gap-2 bg-white border border-slate-200/80 rounded-2xl p-2 shadow-sm relative overflow-hidden';
+        
+        lane.innerHTML = `
+          <div class="w-24 shrink-0 flex items-center gap-1.5 overflow-hidden">
+            <span class="text-base">${p.avatar}</span>
+            <span class="text-xs font-bold text-slate-700 truncate">${p.name}</span>
+          </div>
+          <div class="flex-1 h-7 bg-slate-100 rounded-xl relative overflow-hidden track-bg border border-slate-200/80 flex items-center px-1">
+            <div class="absolute right-0 top-0 bottom-0 w-3 finish-line opacity-80"></div>
+            <div class="absolute top-0.5 bottom-0.5 transition-all duration-500 ease-out flex items-center justify-end px-1"
+                 style="left: 0%; width: ${Math.max(12, p.progress)}%;">
+              <div class="bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-extrabold text-[11px] px-2 py-0.5 rounded-lg shadow flex items-center gap-1 whitespace-nowrap">
+                <span>${p.avatar}</span>
+                <span class="text-[10px]">${p.progress}%</span>
+              </div>
+            </div>
+          </div>
+        `;
+        DOM.raceTrackContainer.appendChild(lane);
+      });
+    }
+
+    function renderLeaderboard() {
+      const sorted = [...state.players].sort((a, b) => b.coins - a.coins);
+      DOM.leaderboardBody.innerHTML = '';
+
+      sorted.forEach((p, idx) => {
+        if (!p.active) return;
+        const rankInfo = getRankTitle(p.coins);
+        const tr = document.createElement('tr');
+        tr.className = `border-b border-slate-100 hover:bg-slate-50 transition ${idx === 0 ? 'bg-amber-50/50' : ''}`;
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-bold text-xs">
+            ${idx === 0 ? '🥇 1st' : idx === 1 ? '🥈 2nd' : idx === 2 ? '🥉 3rd' : `#${idx + 1}`}
+          </td>
+          <td class="py-2.5 px-3 flex items-center gap-2 font-bold text-slate-800">
+            <span>${p.avatar}</span>
+            <span>${p.name}</span>
+          </td>
+          <td class="py-2.5 px-3">
+            <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold ${rankInfo.color}">
+              ${rankInfo.title}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right font-extrabold text-amber-600">
+            ${p.coins} 🪙
+          </td>
+          <td class="py-2.5 px-3 text-right text-xs">
+            ${p.streak > 1 ? `<span class="text-orange-500 font-extrabold">🔥 ${p.streak}</span>` : '<span class="text-slate-400">-</span>'}
+          </td>
+        `;
+        DOM.leaderboardBody.appendChild(tr);
+      });
+    }
+
+    function populateSpellerDropdown() {
+      DOM.spellerSelect.innerHTML = '';
+      const activePlayers = state.players.filter(p => p.active);
+      
+      activePlayers.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.avatar} ${p.name} (${p.coins} 🪙)`;
+        DOM.spellerSelect.appendChild(opt);
+      });
+
+      DOM.activeCountBadge.textContent = `${activePlayers.length} / ${state.players.length}`;
+    }
+
+    /* ===================================================================
+       6. GAMEPLAY & SUBMISSION LOGIC
+       =================================================================== */
+    function startRaceRound() {
+      const target = DOM.secretWordInput.value.trim().toUpperCase();
+      if (!target) {
+        showFeedback("Please enter a secret target word!", "error");
+        return;
+      }
+
+      state.secretTargetWord = target;
+      state.timerDuration = parseInt(DOM.timerDurationInput.value, 10) || 30;
+      state.timeRemaining = state.timerDuration;
+      state.isRaceActive = true;
+      state.roundStartTime = Date.now();
+      state.correctInRound = 0;
+
+      // Update masked word display for students (e.g. •••••••)
+      DOM.maskedWordBox.textContent = '•'.repeat(state.secretTargetWord.length);
+
+      // Reset individual round track progress
+      state.players.forEach(p => p.progress = 0);
+      renderRaceTracks();
+
+      // UI state updates
+      DOM.btnStartRace.disabled = true;
+      DOM.btnStartRace.classList.add('opacity-50');
+      DOM.studentSpellingInput.disabled = false;
+      DOM.btnSubmitSpelling.disabled = false;
+      DOM.studentSpellingInput.focus();
+
+      DOM.raceHintText.textContent = DOM.hintInput.value.trim() 
+        ? `CLUE: ${DOM.hintInput.value.trim()}` 
+        : `Word length: ${state.secretTargetWord.length} letters`;
+
+      // Speak word aloud automatically at start
+      speakSecretWord();
+
+      // Timer Interval
+      clearInterval(state.timerInterval);
+      updateTimerDisplay();
+
+      state.timerInterval = setInterval(() => {
+        state.timeRemaining--;
+        updateTimerDisplay();
+        if (state.timeRemaining <= 5 && state.timeRemaining > 0) {
+          sfx.playTick();
+        }
+
+        if (state.timeRemaining <= 0) {
+          endRaceRound("TIME'S UP!");
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      DOM.timerDisplay.textContent = `${state.timeRemaining}s`;
+      if (state.timeRemaining <= 5) {
+        DOM.timerDisplay.classList.add('text-rose-600', 'bg-rose-50', 'border-rose-200');
+      } else {
+        DOM.timerDisplay.classList.remove('text-rose-600', 'bg-rose-50', 'border-rose-200');
+      }
+    }
+
+    function handleSpellingSubmission(e) {
+      e.preventDefault();
+      if (!state.isRaceActive) return;
+
+      const spellerId = parseInt(DOM.spellerSelect.value, 10);
+      const player = state.players.find(p => p.id === spellerId);
+      const attempt = DOM.studentSpellingInput.value.trim().toUpperCase();
+
+      if (!player || !attempt) return;
+
+      state.totalAttempts++;
+
+      if (attempt === state.secretTargetWord) {
+        // CORRECT ANSWER
+        sfx.playCorrect();
+        state.totalCorrect++;
+        state.correctInRound++;
+
+        const elapsedSec = (Date.now() - state.roundStartTime) / 1000;
+        let baseCoins = 50;
+        let bonusText = "";
+
+        if (state.correctInRound === 1) {
+          baseCoins += 50;
+          bonusText += "🥇 1st Blood (+50) ";
+        } else if (state.correctInRound === 2) {
+          baseCoins += 30;
+          bonusText += "🥈 2nd Place (+30) ";
+        } else if (state.correctInRound === 3) {
+          baseCoins += 15;
+          bonusText += "🥉 3rd Place (+15) ";
+        }
+
+        if (elapsedSec <= 5) {
+          baseCoins += 25;
+          bonusText += "⚡ Fast Bonus (+25) ";
+        }
+
+        player.streak++;
+        if (player.streak > 1) {
+          baseCoins += player.streak * 5;
+          bonusText += `🔥 ${player.streak}x Streak! `;
+        }
+
+        player.coins += baseCoins;
+        player.progress = 100;
+
+        showFeedback(`🎉 CORRECT! ${player.name} earned +${baseCoins} Coins! ${bonusText}`, "success");
+        
+        if (state.correctInRound === 1 && typeof confetti === 'function') {
+          confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
+        }
+
+      } else {
+        // INCORRECT
+        sfx.playWrong();
+        player.streak = 0;
+        player.progress = Math.max(0, player.progress - 10);
+        showFeedback(`❌ Incorrect spelling by ${player.name}! Try again!`, "error");
+      }
+
+      DOM.studentSpellingInput.value = '';
+      DOM.studentSpellingInput.focus();
+
+      renderRaceTracks();
+      renderLeaderboard();
+      populateSpellerDropdown();
+    }
+
+    function endRaceRound(reason = "ROUND COMPLETE") {
+      clearInterval(state.timerInterval);
+      state.isRaceActive = false;
+
+      DOM.btnStartRace.disabled = false;
+      DOM.btnStartRace.classList.remove('opacity-50');
+      DOM.studentSpellingInput.disabled = true;
+      DOM.btnSubmitSpelling.disabled = true;
+
+      sfx.playFanfare();
+      showFeedback(`🏁 ${reason}! Click "Start Race Round" for Round ${state.currentRound + 1}.`, "info");
+      
+      state.currentRound++;
+      DOM.roundCounter.textContent = `ROUND ${state.currentRound}`;
+    }
+
+    function showFeedback(msg, type) {
+      DOM.feedbackBox.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200', 'bg-rose-50', 'text-rose-800', 'border-rose-200', 'bg-indigo-50', 'text-indigo-800', 'border-indigo-200');
+      DOM.feedbackBox.classList.add('border');
+
+      if (type === 'success') {
+        DOM.feedbackBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+      } else if (type === 'error') {
+        DOM.feedbackBox.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200');
+      } else {
+        DOM.feedbackBox.classList.add('bg-indigo-50', 'text-indigo-800', 'border-indigo-200');
+      }
+
+      DOM.feedbackBox.textContent = msg;
+    }
+
+    /* ===================================================================
+       7. INITIALIZATION & EVENT LISTENERS
+       =================================================================== */
+    function initRosterGrid() {
+      DOM.rosterGrid.innerHTML = '';
+      state.players.forEach(p => {
+        const item = document.createElement('label');
+        item.className = 'flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-indigo-300 transition';
+        item.innerHTML = `
+          <input type="checkbox" class="roster-checkbox accent-indigo-600 w-4 h-4 rounded" data-id="${p.id}" ${p.active ? 'checked' : ''} />
+          <span class="text-xs font-bold text-slate-700 truncate">${p.avatar} ${p.name}</span>
+        `;
+        DOM.rosterGrid.appendChild(item);
+      });
+
+      document.querySelectorAll('.roster-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const id = parseInt(e.target.dataset.id, 10);
+          const player = state.players.find(p => p.id === id);
+          if (player) player.active = e.target.checked;
+          renderRaceTracks();
+          renderLeaderboard();
+          populateSpellerDropdown();
+        });
+      });
+    }
+
+    function updateStatsModal() {
+      DOM.statTotalWords.textContent = state.totalAttempts;
+      const acc = state.totalAttempts > 0 ? Math.round((state.totalCorrect / state.totalAttempts) * 100) : 0;
+      DOM.statAccuracy.textContent = `${acc}%`;
+
+      const sorted = [...state.players].sort((a, b) => b.coins - a.coins);
+      if (sorted.length > 0 && sorted[0].coins > 0) {
+        DOM.statMVP.textContent = `${sorted[0].avatar} ${sorted[0].name} (${sorted[0].coins} 🪙)`;
+      } else {
+        DOM.statMVP.textContent = "None Yet";
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initRosterGrid();
+      renderRaceTracks();
+      renderLeaderboard();
+      populateSpellerDropdown();
+
+      // Mask/Unmask Toggle
+      DOM.btnToggleWordMask.addEventListener('click', () => {
+        state.isWordMasked = !state.isWordMasked;
+        DOM.secretWordInput.type = state.isWordMasked ? 'password' : 'text';
+        DOM.btnToggleWordMask.textContent = state.isWordMasked ? '👁️ Unmask Word' : '🙈 Mask Word';
+      });
+
+      // Speak Button
+      DOM.btnSpeakWord.addEventListener('click', speakSecretWord);
+
+      // Start Race
+      DOM.btnStartRace.addEventListener('click', startRaceRound);
+
+      // Submission Form
+      DOM.submissionForm.addEventListener('submit', handleSpellingSubmission);
+
+      // Modals
+      DOM.btnRosterModal.addEventListener('click', () => DOM.rosterModal.classList.remove('hidden'));
+      DOM.btnStatsModal.addEventListener('click', () => {
+        updateStatsModal();
+        DOM.statsModal.classList.remove('hidden');
+      });
+      DOM.btnResetModal.addEventListener('click', () => DOM.resetModal.classList.remove('hidden'));
+
+      document.querySelectorAll('.closeModalBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          DOM.rosterModal.classList.add('hidden');
+          DOM.statsModal.classList.add('hidden');
+          DOM.resetModal.classList.add('hidden');
+        });
+      });
+
+      DOM.btnSelectAllRacers.addEventListener('click', () => {
+        state.players.forEach(p => p.active = true);
+        initRosterGrid();
+        renderRaceTracks();
+        renderLeaderboard();
+        populateSpellerDropdown();
+      });
+
+      DOM.btnDeselectAllRacers.addEventListener('click', () => {
+        state.players.forEach(p => p.active = false);
+        initRosterGrid();
+        renderRaceTracks();
+        renderLeaderboard();
+        populateSpellerDropdown();
+      });
+
+      // Resets
+      DOM.btnResetCurrentRound.addEventListener('click', () => {
+        clearInterval(state.timerInterval);
+        state.isRaceActive = false;
+        state.players.forEach(p => p.progress = 0);
+        DOM.btnStartRace.disabled = false;
+        DOM.btnStartRace.classList.remove('opacity-50');
+        DOM.studentSpellingInput.disabled = true;
+        DOM.btnSubmitSpelling.disabled = true;
+        renderRaceTracks();
+        DOM.resetModal.classList.add('hidden');
+        showFeedback("Current round reset.", "info");
+      });
+
+      DOM.btnResetFullGame.addEventListener('click', () => {
+        clearInterval(state.timerInterval);
+        state.isRaceActive = false;
+        state.currentRound = 1;
+        state.totalAttempts = 0;
+        state.totalCorrect = 0;
+        DOM.roundCounter.textContent = 'ROUND 1';
+
+        state.players.forEach(p => {
+          p.coins = 0;
+          p.streak = 0;
+          p.progress = 0;
+        });
+
+        DOM.btnStartRace.disabled = false;
